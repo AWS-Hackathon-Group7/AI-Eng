@@ -1,7 +1,7 @@
 # Deploying the QueueSmart AI Lambdas
 
-Five functions, one SAM stack. Backend invokes them by name with the frozen
-contract JSON as the payload.
+Five functions, invoked by the Backend team by name with the frozen contract
+JSON as the payload.
 
 | § | Function name | Handler | AWS used |
 |---|---------------|---------|----------|
@@ -11,60 +11,73 @@ contract JSON as the payload.
 | 3.4 | `ai-manager-advice` | `app.handlers.manager_advice` | Bedrock (Sonnet) |
 | 3.5 | `ai-doc-analysis` | `app.handlers.doc_analysis` | Textract + S3 + Bedrock (Haiku) |
 
-## Prerequisites
+## Primary: `scripts/deploy.py` (boto3, no SAM)
 
-- **AWS SAM CLI** and **Docker** (build uses a container so the compiled
-  `pydantic-core` wheel matches the Lambda runtime).
-- AWS credentials with permission to create the stack's Lambdas + IAM roles.
-  > Note: the workshop `WSParticipantRole` may **not** allow IAM role / Lambda
-  > creation. If `sam deploy` fails on `iam:CreateRole` or `lambda:CreateFunction`,
-  > you need an admin/instructor role to deploy.
-- The shared resources already exist (created during development): the Textract
-  bucket, the Bedrock Knowledge Base (`UC64X5D8BU`, checklists ingested), and the
-  Location route calculator (`queuesmart-routes`). Override them via the
-  template parameters if yours differ.
-
-## Build & deploy
+This is how the stack is actually deployed in the workshop account. It builds a
+Linux deployment zip, ensures the execution role has the needed permissions, and
+creates-or-updates all five functions. Idempotent — re-run it to push changes.
 
 ```bash
-sam build --use-container
-sam deploy --guided        # first time: pick stack name, region us-west-2, confirm
-# subsequent deploys:
-sam deploy
+pip install -r requirements-dev.txt    # boto3 + build tooling (one time)
+python scripts/deploy.py               # uses creds from .env / the boto3 chain
 ```
 
-`sam build` packages the `CodeUri: .` directory and installs `requirements.txt`
-(the slim runtime set — not the dev/FastAPI deps). Build from a clean checkout;
-the local `.venv/` is gitignored and should not be present in the build tree.
+Why not SAM here:
+- The workshop `WSParticipantRole` **can** create Lambdas + `PassRole`, but
+  **cannot** create IAM roles — SAM's default flow needs `iam:CreateRole`.
+- The installed SAM CLI is built for macOS 13+ and won't load on macOS 12.
 
-## Configuration
+So the script **reuses an existing execution role** (`ec2-ubuntu-kiro-workshop-lambda-role`,
+which already had `bedrock:InvokeModel` + `bedrock:Retrieve`) and adds one
+scoped, additive inline policy for the rest.
 
-All config is passed as template parameters (with dev defaults) and surfaced to
-the functions as environment variables — see `template.yaml`. Credentials come
-from each function's execution role, **not** from `.env` (that file is local-only).
-`AWS_REGION` is provided automatically by the Lambda runtime.
+### The inline policy it adds
+`QueueSmartTextractLocationS3` on the exec role — `geo:CalculateRoute` (on the
+calculator), `textract:Start/GetDocumentTextDetection`, and `s3:GetObject` (on
+the Textract bucket only). Needed by smart-alert and doc-analysis. Remove with:
+
+```bash
+aws iam delete-role-policy \
+  --role-name ec2-ubuntu-kiro-workshop-lambda-role \
+  --policy-name QueueSmartTextractLocationS3
+```
+
+### Configuration
+Override any of these via environment variables before running the script
+(defaults target the workshop account): `AWS_REGION`, `AWS_ACCOUNT_ID`,
+`LAMBDA_EXEC_ROLE`, `TEXTRACT_BUCKET`, `KNOWLEDGE_BASE_ID`,
+`LOCATION_CALCULATOR_NAME`, `BEDROCK_MODEL_ID`, `BEDROCK_CHAT_MODEL_ID`. These
+are also set as each function's Lambda environment variables; credentials come
+from the execution role, not `.env`.
+
+## Alternative: AWS SAM (`template.yaml`)
+
+For an account that **does** allow IAM role creation and a working SAM CLI,
+`template.yaml` defines the same five functions with per-function scoped roles:
+
+```bash
+sam build --use-container     # container build matches the Lambda runtime
+sam deploy --guided
+```
+
+The shared resources (Textract bucket, KB `UC64X5D8BU` with checklists ingested,
+Location calculator `queuesmart-routes`) must already exist; override via the
+template parameters.
 
 ## Invoke (smoke test)
 
 ```bash
-# §3.3 routing
 aws lambda invoke --function-name ai-routing \
   --payload '{"queueId":"q_passport","counters":[],"waitingTickets":[],"serviceTimeStats":{}}' \
-  --cli-binary-format raw-in-base64-out out.json && cat out.json
-
-# §3.5 doc-analysis (object must already be in the Textract bucket)
-aws lambda invoke --function-name ai-doc-analysis \
-  --payload '{"s3Key":"tkt_123/id.pdf","expectedDocType":"Ghana Card"}' \
   --cli-binary-format raw-in-base64-out out.json && cat out.json
 ```
 
 ## Triggers
 
-These are invoked directly by Backend (the event = the contract payload), so no
-event-source mapping is defined here. If you later want `ai-doc-analysis` to fire
-straight off an S3 upload, add an `Events: { S3: ... }` block — but note a raw S3
-event carries only the object key, not `expectedDocType`, so Backend-invoke
-remains the path that matches the §3.5 contract.
+Invoked directly by Backend (event = contract payload), so no event-source
+mapping is defined. To later fire `ai-doc-analysis` straight off an S3 upload,
+add an S3 event — but note a raw S3 event carries only the object key, not
+`expectedDocType`, so Backend-invoke remains the path matching the §3.5 contract.
 
 ## Local development (no deploy)
 
