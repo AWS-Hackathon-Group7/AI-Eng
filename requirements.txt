@@ -1,0 +1,5 @@
+# Runtime deps bundled into the Lambda package (boto3 pinned so Bedrock /
+# Location / Textract APIs are current; the Lambda-provided boto3 can lag).
+boto3>=1.34
+pydantic>=2.6
+pydantic-settings>=2.2
