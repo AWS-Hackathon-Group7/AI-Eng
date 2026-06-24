@@ -3,3 +3,5 @@
 boto3>=1.34
 pydantic>=2.6
 pydantic-settings>=2.2
+fastapi
+uvicorn
