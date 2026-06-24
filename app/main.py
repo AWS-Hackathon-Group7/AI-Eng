@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import Settings, get_settings
@@ -13,7 +14,25 @@ from .routing import RoutingRequest, RoutingResponse, route
 from .smart_alert import SmartAlertRequest, SmartAlertResponse, smart_alert
 from .textract import TextractError, TextractService
 
-app = FastAPI(title="QueueSmart Document Reader")
+app = FastAPI(
+    title="QueueSmart AI",
+    description=(
+        "AI features for QueueSmart, powered by Amazon Bedrock (Claude), "
+        "Textract, and Location Service. Each endpoint mirrors a Lambda the "
+        "Backend invokes. Use /docs to try them interactively."
+    ),
+    version="1.0.0",
+)
+
+# Allow the frontend (any origin) to call the API from a browser. No cookies are
+# used, so credentials stay off — required when allowing all origins.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Textract async detection accepts PDFs and single images.
 ALLOWED_TYPES = {

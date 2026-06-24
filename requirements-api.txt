@@ -1,0 +1,8 @@
+# Deps bundled into the HTTP API Lambda (app.asgi.handler), which serves the
+# full FastAPI app + Swagger /docs over a Function URL. boto3 is provided by the
+# Lambda runtime; uvicorn is not needed (Mangum drives the ASGI app).
+fastapi>=0.111
+mangum>=0.17
+pydantic>=2.6
+pydantic-settings>=2.2
+python-multipart>=0.0.9

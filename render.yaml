@@ -1,0 +1,43 @@
+# Render Blueprint for the QueueSmart AI FastAPI app.
+# Gives a public HTTPS URL with browser-openable Swagger docs at /docs.
+#
+# Deploy: Render Dashboard -> New -> Blueprint -> connect this repo.
+# Then set the three secret env vars (AWS credentials) in the dashboard.
+#
+# NOTE: the app calls Bedrock/Textract/Location, so it needs AWS credentials.
+# Workshop STS keys expire in hours — for a stable public URL use long-lived
+# IAM user keys from an account you control (then AWS_SESSION_TOKEN is unused).
+services:
+  - type: web
+    name: queuesmart-ai
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      # --- non-secret config (safe to commit) ---
+      - key: AWS_REGION
+        value: us-west-2
+      - key: BEDROCK_REGION
+        value: us-west-2
+      - key: TEXTRACT_BUCKET
+        value: 432183140028-us-west-2-textract-uploads
+      - key: KNOWLEDGE_BASE_ID
+        value: UC64X5D8BU
+      - key: LOCATION_CALCULATOR_NAME
+        value: queuesmart-routes
+      - key: BEDROCK_MODEL_ID
+        value: us.anthropic.claude-haiku-4-5-20251001-v1:0
+      - key: BEDROCK_CHAT_MODEL_ID
+        value: us.anthropic.claude-sonnet-4-6
+      # --- secrets: set these in the Render dashboard (sync:false) ---
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_SESSION_TOKEN   # only needed for temporary STS credentials
+        sync: false

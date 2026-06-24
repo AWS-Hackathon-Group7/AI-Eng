@@ -104,7 +104,10 @@ def ensure_role_policy() -> None:
             {"Sid": "Textract", "Effect": "Allow",
              "Action": ["textract:StartDocumentTextDetection", "textract:GetDocumentTextDetection"],
              "Resource": "*"},
-            {"Sid": "S3Read", "Effect": "Allow", "Action": "s3:GetObject",
+            # GetObject for the §3.5 contract path; Put/Delete for the API's
+            # /extract endpoint, which uploads then cleans up its own object.
+            {"Sid": "S3", "Effect": "Allow",
+             "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
              "Resource": f"arn:aws:s3:::{TEXTRACT_BUCKET}/*"},
         ],
     }
