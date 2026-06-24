@@ -1,12 +1,18 @@
 from functools import lru_cache
 
-from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Load .env into the process environment so boto3 picks up AWS credentials
-# (AWS_ACCESS_KEY_ID / SECRET / SESSION_TOKEN). pydantic-settings only reads
-# the fields defined below; boto3 reads straight from os.environ.
-load_dotenv()
+# Locally, load .env into the process environment so boto3 picks up AWS
+# credentials (AWS_ACCESS_KEY_ID / SECRET / SESSION_TOKEN). pydantic-settings
+# only reads the fields defined below; boto3 reads straight from os.environ. In
+# Lambda there is no .env (env vars come from the function config and creds from
+# the execution role), and python-dotenv isn't bundled — so this is optional.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ModuleNotFoundError:
+    pass
 
 
 class Settings(BaseSettings):

@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  QueueSmart AI Engineering — five Lambda functions with frozen JSON contracts,
+  invoked by the Backend team. Bedrock (Claude) + Textract + Location Service.
+
+Parameters:
+  TextractBucket:
+    Type: String
+    Description: S3 bucket Textract reads uploaded documents from.
+    Default: 432183140028-us-west-2-textract-uploads
+  KnowledgeBaseId:
+    Type: String
+    Description: Bedrock Knowledge Base holding the document checklists.
+    Default: UC64X5D8BU
+  LocationCalculatorName:
+    Type: String
+    Description: Amazon Location Service route calculator (with traffic).
+    Default: queuesmart-routes
+  BedrockModelId:
+    Type: String
+    Description: Fast/cheap Claude model (doc classification, alert phrasing).
+    Default: us.anthropic.claude-haiku-4-5-20251001-v1:0
+  BedrockChatModelId:
+    Type: String
+    Description: Stronger Claude model (pre-vetting chat, routing, advice).
+    Default: us.anthropic.claude-sonnet-4-6
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 512
+    Timeout: 30
+    Architectures: [x86_64]
+    Environment:
+      Variables:
+        # AWS_REGION is provided by the Lambda runtime; do not set it here.
+        TEXTRACT_BUCKET: !Ref TextractBucket
+        KNOWLEDGE_BASE_ID: !Ref KnowledgeBaseId
+        LOCATION_CALCULATOR_NAME: !Ref LocationCalculatorName
+        BEDROCK_REGION: !Ref AWS::Region
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+        BEDROCK_CHAT_MODEL_ID: !Ref BedrockChatModelId
+
+Resources:
+  # §3.1 — conversational document pre-vetting (hero). Bedrock + KB retrieve.
+  PrevettingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ai-prevetting
+      CodeUri: .
+      Handler: app.handlers.prevetting
+      Timeout: 60
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: "*"
+            - Effect: Allow
+              Action: bedrock:Retrieve
+              Resource: !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/${KnowledgeBaseId}
+
+  # §3.2 — smart "leave now" alert (hero). Location Service + Bedrock.
+  SmartAlertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ai-smart-alert
+      CodeUri: .
+      Handler: app.handlers.smart_alert
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: geo:CalculateRoute
+              Resource: !Sub arn:aws:geo:${AWS::Region}:${AWS::AccountId}:route-calculator/${LocationCalculatorName}
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: "*"
+
+  # §3.3 — dynamic queue routing. Bedrock only.
+  RoutingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ai-routing
+      CodeUri: .
+      Handler: app.handlers.routing
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: "*"
+
+  # §3.4 — manager advice. Bedrock only.
+  ManagerAdviceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ai-manager-advice
+      CodeUri: .
+      Handler: app.handlers.manager_advice
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: "*"
+
+  # §3.5 — document analysis. Textract (async) + S3 read + Bedrock.
+  DocAnalysisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ai-doc-analysis
+      CodeUri: .
+      Handler: app.handlers.doc_analysis
+      Timeout: 180
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - textract:StartDocumentTextDetection
+                - textract:GetDocumentTextDetection
+              Resource: "*"
+            - Effect: Allow
+              Action: s3:GetObject
+              Resource: !Sub arn:aws:s3:::${TextractBucket}/*
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: "*"
+
+Outputs:
+  PrevettingFunctionArn:
+    Value: !GetAtt PrevettingFunction.Arn
+  SmartAlertFunctionArn:
+    Value: !GetAtt SmartAlertFunction.Arn
+  RoutingFunctionArn:
+    Value: !GetAtt RoutingFunction.Arn
+  ManagerAdviceFunctionArn:
+    Value: !GetAtt ManagerAdviceFunction.Arn
+  DocAnalysisFunctionArn:
+    Value: !GetAtt DocAnalysisFunction.Arn
