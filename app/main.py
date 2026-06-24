@@ -7,7 +7,9 @@ from pydantic import BaseModel
 
 from .config import Settings, get_settings
 from .doc_analysis import DocAnalysisRequest, DocAnalysisResponse, analyze_document
+from .manager_advice import ManagerAdviceRequest, ManagerAdviceResponse, advise
 from .prevetting import PrevetRequest, PrevetResponse, prevet
+from .routing import RoutingRequest, RoutingResponse, route
 from .smart_alert import SmartAlertRequest, SmartAlertResponse, smart_alert
 from .textract import TextractError, TextractService
 
@@ -98,3 +100,21 @@ def smart_alert_endpoint(
 ) -> SmartAlertResponse:
     """§3.2 contract: live-traffic "leave now" alert."""
     return smart_alert(req, settings)
+
+
+@app.post("/routing", response_model=RoutingResponse)
+def routing_endpoint(
+    req: RoutingRequest,
+    settings: Settings = Depends(get_settings),
+) -> RoutingResponse:
+    """§3.3 contract: dynamic queue routing."""
+    return route(req, settings)
+
+
+@app.post("/manager-advice", response_model=ManagerAdviceResponse)
+def manager_advice_endpoint(
+    req: ManagerAdviceRequest,
+    settings: Settings = Depends(get_settings),
+) -> ManagerAdviceResponse:
+    """§3.4 contract: actionable manager advice."""
+    return advise(req, settings)
