@@ -1,0 +1,8 @@
+# Deps for running the FastAPI app as a long-lived web server (e.g. Render).
+# Unlike the Lambda package, this includes uvicorn (the server) and boto3.
+boto3>=1.34
+pydantic>=2.6
+pydantic-settings>=2.2
+fastapi>=0.111
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9

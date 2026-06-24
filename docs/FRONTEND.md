@@ -39,10 +39,27 @@ python scripts/export_openapi.py
 
 Exact field types are in `docs/openapi.json`.
 
-## Note on a hosted URL
+## Hosted public URL (Render)
 
-The same app is deployed on AWS (Lambda + Function URL), but the workshop account
-blocks **public** Function URLs at the org level, so it only accepts AWS-signed
-(IAM) requests — a browser can't open its `/docs` directly. For interactive
-testing use the local server above. In production the Backend reaches the five
-feature functions via Lambda invoke (see `DEPLOY.md`), not over HTTP.
+For a shareable, browser-openable URL the project ships a Render blueprint
+([`render.yaml`](../render.yaml)). The AWS account blocks public Lambda Function
+URLs, so Render is how we expose a public `/docs`.
+
+Deploy (one time):
+1. Push this repo to GitHub (if not already).
+2. Render Dashboard → **New → Blueprint** → connect the repo → it reads
+   `render.yaml` and creates the `queuesmart-ai` web service.
+3. In the service's **Environment**, set the three secret vars:
+   `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and (only for temporary
+   workshop keys) `AWS_SESSION_TOKEN`.
+4. Deploy → you get `https://queuesmart-ai.onrender.com` with `/docs` public.
+
+> ⚠️ The app calls Bedrock/Textract/Location, so those AWS keys must stay valid.
+> Workshop STS keys expire in a few hours — for a stable demo URL, use
+> long-lived IAM user keys from an account you control (then omit
+> `AWS_SESSION_TOKEN`). On Render's free plan the service also sleeps after
+> inactivity and cold-starts in ~30s.
+
+In production the Backend reaches the five feature functions via **Lambda
+invoke** (see `DEPLOY.md`), not over HTTP — Render is just the testing/demo
+surface.

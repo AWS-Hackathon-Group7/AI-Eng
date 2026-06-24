@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import Settings, get_settings
@@ -21,6 +22,16 @@ app = FastAPI(
         "Backend invokes. Use /docs to try them interactively."
     ),
     version="1.0.0",
+)
+
+# Allow the frontend (any origin) to call the API from a browser. No cookies are
+# used, so credentials stay off — required when allowing all origins.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Textract async detection accepts PDFs and single images.
