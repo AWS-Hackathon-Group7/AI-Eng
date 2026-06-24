@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     knowledge_base_id: str = "UC64X5D8BU"
     kb_num_results: int = 4
 
+    # Amazon Location Service for §3.2 smart "leave now" alert. DepartNow=True
+    # gives live-traffic ETA. arrival_buffer = how early we aim to get the
+    # customer there before their estimated call time.
+    location_calculator_name: str = "queuesmart-routes"
+    arrival_buffer_seconds: int = 300
+
     # extra="ignore": the .env also holds AWS_* credentials for boto3, which
     # aren't fields here — don't reject them.
     model_config = SettingsConfigDict(

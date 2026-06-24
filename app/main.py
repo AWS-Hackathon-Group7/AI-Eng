@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from .config import Settings, get_settings
 from .doc_analysis import DocAnalysisRequest, DocAnalysisResponse, analyze_document
 from .prevetting import PrevetRequest, PrevetResponse, prevet
+from .smart_alert import SmartAlertRequest, SmartAlertResponse, smart_alert
 from .textract import TextractError, TextractService
 
 app = FastAPI(title="QueueSmart Document Reader")
@@ -88,3 +89,12 @@ def prevetting(
 ) -> PrevetResponse:
     """§3.1 contract: grounded conversational document pre-vetting."""
     return prevet(req, settings)
+
+
+@app.post("/smart-alert", response_model=SmartAlertResponse)
+def smart_alert_endpoint(
+    req: SmartAlertRequest,
+    settings: Settings = Depends(get_settings),
+) -> SmartAlertResponse:
+    """§3.2 contract: live-traffic "leave now" alert."""
+    return smart_alert(req, settings)
