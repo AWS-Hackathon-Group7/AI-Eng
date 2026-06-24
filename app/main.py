@@ -13,7 +13,15 @@ from .routing import RoutingRequest, RoutingResponse, route
 from .smart_alert import SmartAlertRequest, SmartAlertResponse, smart_alert
 from .textract import TextractError, TextractService
 
-app = FastAPI(title="QueueSmart Document Reader")
+app = FastAPI(
+    title="QueueSmart AI",
+    description=(
+        "AI features for QueueSmart, powered by Amazon Bedrock (Claude), "
+        "Textract, and Location Service. Each endpoint mirrors a Lambda the "
+        "Backend invokes. Use /docs to try them interactively."
+    ),
+    version="1.0.0",
+)
 
 # Textract async detection accepts PDFs and single images.
 ALLOWED_TYPES = {

@@ -1,0 +1,702 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "QueueSmart AI",
+    "description": "AI features for QueueSmart, powered by Amazon Bedrock (Claude), Textract, and Location Service. Each endpoint mirrors a Lambda the Backend invokes. Use /docs to try them interactively.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/extract": {
+      "post": {
+        "summary": "Extract",
+        "operationId": "extract_extract_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extract_extract_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/doc-analysis": {
+      "post": {
+        "summary": "Doc Analysis",
+        "description": "\u00a73.5 contract: Textract + Claude over a document already in S3.",
+        "operationId": "doc_analysis_doc_analysis_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prevetting": {
+      "post": {
+        "summary": "Prevetting",
+        "description": "\u00a73.1 contract: grounded conversational document pre-vetting.",
+        "operationId": "prevetting_prevetting_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrevetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrevetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/smart-alert": {
+      "post": {
+        "summary": "Smart Alert Endpoint",
+        "description": "\u00a73.2 contract: live-traffic \"leave now\" alert.",
+        "operationId": "smart_alert_endpoint_smart_alert_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmartAlertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartAlertResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/routing": {
+      "post": {
+        "summary": "Routing Endpoint",
+        "description": "\u00a73.3 contract: dynamic queue routing.",
+        "operationId": "routing_endpoint_routing_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/manager-advice": {
+      "post": {
+        "summary": "Manager Advice Endpoint",
+        "description": "\u00a73.4 contract: actionable manager advice.",
+        "operationId": "manager_advice_endpoint_manager_advice_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagerAdviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerAdviceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_extract_extract_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_extract_extract_post"
+      },
+      "DocAnalysisRequest": {
+        "properties": {
+          "s3Key": {
+            "type": "string",
+            "title": "S3Key"
+          },
+          "expectedDocType": {
+            "type": "string",
+            "title": "Expecteddoctype"
+          }
+        },
+        "type": "object",
+        "required": [
+          "s3Key",
+          "expectedDocType"
+        ],
+        "title": "DocAnalysisRequest"
+      },
+      "DocAnalysisResponse": {
+        "properties": {
+          "documentType": {
+            "type": "string",
+            "title": "Documenttype"
+          },
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Fields"
+          },
+          "isValid": {
+            "type": "boolean",
+            "title": "Isvalid"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "documentType",
+          "isValid"
+        ],
+        "title": "DocAnalysisResponse"
+      },
+      "ExtractResponse": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "char_count": {
+            "type": "integer",
+            "title": "Char Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "text",
+          "char_count"
+        ],
+        "title": "ExtractResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LatLng": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "title": "LatLng"
+      },
+      "ManagerAdviceRequest": {
+        "properties": {
+          "queueId": {
+            "type": "string",
+            "title": "Queueid"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queueId",
+          "metrics"
+        ],
+        "title": "ManagerAdviceRequest"
+      },
+      "ManagerAdviceResponse": {
+        "properties": {
+          "advice": {
+            "type": "string",
+            "title": "Advice"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "suggestedActions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suggestedactions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "advice",
+          "severity"
+        ],
+        "title": "ManagerAdviceResponse"
+      },
+      "PrevetRequest": {
+        "properties": {
+          "ticketId": {
+            "type": "string",
+            "title": "Ticketid"
+          },
+          "queueId": {
+            "type": "string",
+            "title": "Queueid"
+          },
+          "serviceName": {
+            "type": "string",
+            "title": "Servicename"
+          },
+          "requiredDocuments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requireddocuments"
+          },
+          "conversationHistory": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Conversationhistory"
+          },
+          "userMessage": {
+            "type": "string",
+            "title": "Usermessage"
+          },
+          "documentAnalysis": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Documentanalysis"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticketId",
+          "queueId",
+          "serviceName",
+          "userMessage"
+        ],
+        "title": "PrevetRequest"
+      },
+      "PrevetResponse": {
+        "properties": {
+          "reply": {
+            "type": "string",
+            "title": "Reply"
+          },
+          "prevettingStatus": {
+            "type": "string",
+            "title": "Prevettingstatus"
+          },
+          "missingDocuments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missingdocuments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reply",
+          "prevettingStatus"
+        ],
+        "title": "PrevetResponse"
+      },
+      "Reassignment": {
+        "properties": {
+          "ticketId": {
+            "type": "string",
+            "title": "Ticketid"
+          },
+          "fromCounterId": {
+            "type": "string",
+            "title": "Fromcounterid"
+          },
+          "toCounterId": {
+            "type": "string",
+            "title": "Tocounterid"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticketId",
+          "fromCounterId",
+          "toCounterId",
+          "reason"
+        ],
+        "title": "Reassignment"
+      },
+      "RoutingRequest": {
+        "properties": {
+          "queueId": {
+            "type": "string",
+            "title": "Queueid"
+          },
+          "counters": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Counters"
+          },
+          "waitingTickets": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Waitingtickets"
+          },
+          "serviceTimeStats": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Servicetimestats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queueId"
+        ],
+        "title": "RoutingRequest"
+      },
+      "RoutingResponse": {
+        "properties": {
+          "reassignments": {
+            "items": {
+              "$ref": "#/components/schemas/Reassignment"
+            },
+            "type": "array",
+            "title": "Reassignments"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rationale"
+        ],
+        "title": "RoutingResponse"
+      },
+      "SmartAlertRequest": {
+        "properties": {
+          "ticketId": {
+            "type": "string",
+            "title": "Ticketid"
+          },
+          "venueLocation": {
+            "$ref": "#/components/schemas/LatLng"
+          },
+          "estimatedCallTime": {
+            "type": "string",
+            "title": "Estimatedcalltime"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "customerLocation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatLng"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticketId",
+          "venueLocation",
+          "estimatedCallTime",
+          "position"
+        ],
+        "title": "SmartAlertRequest"
+      },
+      "SmartAlertResponse": {
+        "properties": {
+          "leaveAtIso": {
+            "type": "string",
+            "title": "Leaveatiso"
+          },
+          "leaveInSec": {
+            "type": "integer",
+            "title": "Leaveinsec"
+          },
+          "travelTimeSec": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traveltimesec"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "leaveAtIso",
+          "leaveInSec",
+          "message"
+        ],
+        "title": "SmartAlertResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
