@@ -6,12 +6,12 @@
 
 ## 1. The four AI features (this is the product)
 
-| # | Feature | Plain English | Status for hackathon |
-|---|---------|---------------|----------------------|
-| 1 | **Dynamic queue routing** | If a counter is stuck on a hard task, move easy tasks to free counters so the line keeps moving. | If time |
-| 2 | **Document pre-vetting** | In the in-app chat, Claude checks you have the right papers **before** you arrive. | ⭐ **Hero — build first** |
-| 3 | **Just-in-time alerts** | The "leave now" message factors in your **location + live traffic**, not a fixed timer. | ⭐ **Hero — build first** |
-| 4 | **Manager advice** | When waits spike, Claude tells the manager the exact problem and what to do. | If time |
+| # | Feature                         | Plain English                                                                                    | Status for hackathon            |
+| - | ------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------- |
+| 1 | **Dynamic queue routing** | If a counter is stuck on a hard task, move easy tasks to free counters so the line keeps moving. | If time                         |
+| 2 | **Document pre-vetting**  | In the in-app chat, Claude checks you have the right papers**before** you arrive.          | ⭐**Hero — build first** |
+| 3 | **Just-in-time alerts**   | The "leave now" message factors in your**location + live traffic**, not a fixed timer.     | ⭐**Hero — build first** |
+| 4 | **Manager advice**        | When waits spike, Claude tells the manager the exact problem and what to do.                     | If time                         |
 
 > **Focus order for the demo:** #2 and #3 are the "hero AI" — they fully show off Bedrock and demo best. Build those to a polished state before touching #1 and #4.
 
@@ -19,14 +19,14 @@
 
 ## 2. What you own
 
-| Capability | AWS service | Notes |
-|------------|-------------|-------|
-| Reasoning / chat | **Amazon Bedrock — Claude** | Use the latest available Claude model in the hackathon region (e.g. a Claude Sonnet for chat/advice; a smaller/faster Claude for cheap classification). |
-| Document checklists | **Bedrock Knowledge Base** | Per-service required-documents docs in S3, indexed for retrieval so pre-vetting is accurate and grounded. |
-| Document reading | **Amazon Textract** | Extract text/fields from uploaded IDs, forms, letters. |
-| Travel time / traffic | **Amazon Location Service** | Route + live-traffic ETA from customer location → venue. |
-| Stats for routing | **Amazon Timestream** | Read service-speed / wait-time history (Backend writes it). |
-| Compute | **AWS Lambda** | One function per feature; Backend invokes you. |
+| Capability            | AWS service                        | Notes                                                                                                                                                   |
+| --------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reasoning / chat      | **Amazon Bedrock — Claude** | Use the latest available Claude model in the hackathon region (e.g. a Claude Sonnet for chat/advice; a smaller/faster Claude for cheap classification). |
+| Document checklists   | **Bedrock Knowledge Base**   | Per-service required-documents docs in S3, indexed for retrieval so pre-vetting is accurate and grounded.                                               |
+| Document reading      | **Amazon Textract**          | Extract text/fields from uploaded IDs, forms, letters.                                                                                                  |
+| Travel time / traffic | **Amazon Location Service**  | Route + live-traffic ETA from customer location → venue.                                                                                               |
+| Stats for routing     | **Amazon Timestream**        | Read service-speed / wait-time history (Backend writes it).                                                                                             |
+| Compute               | **AWS Lambda**               | One function per feature; Backend invokes you.                                                                                                          |
 
 You do **not** own API Gateway, the DB writes, the WebSocket, or sending notifications — **Backend invokes your Lambdas and persists/broadcasts your output.** Your job ends when you return clean JSON.
 
@@ -37,7 +37,9 @@ You do **not** own API Gateway, the DB writes, the WebSocket, or sending notific
 Backend calls you on events / requests and writes your results back. **Freeze these JSON shapes with the Backend team on day one** and put them in the shared `models/`. (Mirrors Backend README §9.)
 
 ### 3.1 Pre-vetting chat — `ai-prevetting` Lambda  ⭐
+
 Invoked by Backend's `POST /tickets/{id}/chat` handler.
+
 ```jsonc
 // INPUT
 {
@@ -56,11 +58,14 @@ Invoked by Backend's `POST /tickets/{id}/chat` handler.
   "missingDocuments": ["Ghana Card"]
 }
 ```
+
 - Ground the checklist in the **Knowledge Base** (retrieve the doc list for `queueId`/service), don't rely on the model's memory.
 - Be conversational and reassuring; one question at a time; confirm when fully ready (`passed`).
 
 ### 3.2 Smart "leave now" alert — `ai-smart-alert` Lambda  ⭐
+
 Invoked by Backend's `position.threshold` event consumer.
+
 ```jsonc
 // INPUT
 {
@@ -78,11 +83,14 @@ Invoked by Backend's `position.threshold` event consumer.
   "message": "Leave now — with current traffic it's ~25 min, so you'll arrive 3 min before your turn."
 }
 ```
+
 - Use **Location Service** route calculator (with traffic) for `travelTimeSec`; subtract from `estimatedCallTime` minus a safety buffer to get `leaveAtIso`.
 - Use Claude to phrase a short, friendly `message`. If no location, return a time-only fallback and say so.
 
 ### 3.3 Dynamic queue routing — `ai-routing` Lambda
+
 Invoked by Backend on `ticket.created` / `ticket.served` / `counter.*`.
+
 ```jsonc
 // INPUT
 {
@@ -97,10 +105,13 @@ Invoked by Backend on `ticket.created` / `ticket.served` / `counter.*`.
   "rationale": "Desk 2 is stuck on a new application; routing 3 quick renewals to Desk 1 to keep the line moving."
 }
 ```
+
 - Keep reassignments minimal and explainable. Return `[]` when no change is worthwhile (don't thrash the queue).
 
 ### 3.4 Manager advice — `ai-manager-advice` Lambda
+
 Invoked by Backend on `queue.backed_up`.
+
 ```jsonc
 // INPUT
 { "queueId": "q_passport",
@@ -112,14 +123,18 @@ Invoked by Backend on `queue.backed_up`.
   "severity": "high",                         // low | medium | high
   "suggestedActions": ["Add staff to Desk 3", "Route simple tasks to Desks 1–2"] }
 ```
+
 - Be specific and actionable ("Desk 3 is slow — move staff now"), never generic ("consider optimizing").
 
 ### 3.5 Document analysis — `ai-doc-analysis` Lambda
+
 Invoked by Backend after a customer uploads a file (S3 event).
+
 ```jsonc
 // INPUT  { "s3Key": "tkt_.../ghana_card.jpg", "expectedDocType": "Ghana Card" }
 // OUTPUT { "documentType": "Ghana Card", "fields": { "name":"...", "idNumber":"..." }, "isValid": true, "issues": [] }
 ```
+
 - Run **Textract** to extract text/fields, then use Claude to classify the doc and judge whether it matches `expectedDocType` and looks complete. Feed the result back into pre-vetting (§3.1).
 
 ---
@@ -127,6 +142,7 @@ Invoked by Backend after a customer uploads a file (S3 event).
 ## 4. Knowledge Base (document checklists)
 
 The accuracy of pre-vetting depends on this — build it early.
+
 - Author a short doc per service (e.g. `passport-renewal.md`, `birth-certificate.md`) listing **required documents, common mistakes, and validity rules.** Store in S3.
 - Create a **Bedrock Knowledge Base** over that bucket (managed vector store / OpenSearch Serverless).
 - At chat time, **retrieve** the relevant checklist for the `queueId`/service and put it in the prompt context (RAG). This keeps Claude grounded and makes it trivial to add new services without code changes.

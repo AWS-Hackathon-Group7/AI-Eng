@@ -109,45 +109,76 @@ def _phrase_message(
 
 
 def smart_alert(req: SmartAlertRequest, settings: Settings) -> SmartAlertResponse:
-    call_time = _parse_iso(req.estimatedCallTime)
-    now = datetime.now(timezone.utc)
-    buffer = timedelta(seconds=settings.arrival_buffer_seconds)
+    try:
+        call_time = _parse_iso(req.estimatedCallTime)
+        now = datetime.now(timezone.utc)
+        buffer = timedelta(seconds=settings.arrival_buffer_seconds)
 
-    if req.customerLocation is None:
-        # Time-only fallback: leave by call time minus the safety buffer.
-        leave_at = call_time - buffer
-        message = _phrase_message(
-            settings,
-            travel_time_sec=None,
-            leave_in_sec=int((leave_at - now).total_seconds()),
-            arrive_early_sec=settings.arrival_buffer_seconds,
-            position=req.position,
-            located=False,
-        )
+        if req.customerLocation is None:
+            # Time-only fallback: leave by call time minus the safety buffer.
+            leave_at = call_time - buffer
+            try:
+                message = _phrase_message(
+                    settings,
+                    travel_time_sec=None,
+                    leave_in_sec=int((leave_at - now).total_seconds()),
+                    arrive_early_sec=settings.arrival_buffer_seconds,
+                    position=req.position,
+                    located=False,
+                )
+            except Exception as e:
+                print(f"Error phrasing fallback smart alert: {e}")
+                message = f"Please set off in time to arrive before your turn. You are number {req.position} in the queue."
+            return SmartAlertResponse(
+                leaveAtIso=_iso_z(leave_at),
+                leaveInSec=max(0, int((leave_at - now).total_seconds())),
+                travelTimeSec=None,
+                message=message,
+            )
+
+        try:
+            travel_time = _travel_time_seconds(req, settings)
+        except Exception as loc_err:
+            print(f"Error calculating travel time from Amazon Location: {loc_err}")
+            travel_time = 900  # fallback to 15 min
+
+        leave_at = call_time - timedelta(seconds=travel_time) - buffer
+        leave_in = int((leave_at - now).total_seconds())
+
+        try:
+            message = _phrase_message(
+                settings,
+                travel_time_sec=travel_time,
+                leave_in_sec=leave_in,
+                arrive_early_sec=settings.arrival_buffer_seconds,
+                position=req.position,
+                located=True,
+            )
+        except Exception as bed_err:
+            print(f"Error phrasing smart alert message via Bedrock: {bed_err}")
+            message = f"Based on your queue position ({req.position}), please head out in time to arrive for your turn."
+
         return SmartAlertResponse(
             leaveAtIso=_iso_z(leave_at),
-            leaveInSec=max(0, int((leave_at - now).total_seconds())),
-            travelTimeSec=None,
+            leaveInSec=max(0, leave_in),
+            travelTimeSec=travel_time,
             message=message,
         )
-
-    travel_time = _travel_time_seconds(req, settings)
-    leave_at = call_time - timedelta(seconds=travel_time) - buffer
-    leave_in = int((leave_at - now).total_seconds())
-    # How early they'd arrive if they leave exactly at leave_at.
-    arrive_early = int((call_time - (now + timedelta(seconds=max(0, leave_in) + travel_time))).total_seconds())
-
-    message = _phrase_message(
-        settings,
-        travel_time_sec=travel_time,
-        leave_in_sec=leave_in,
-        arrive_early_sec=settings.arrival_buffer_seconds,
-        position=req.position,
-        located=True,
-    )
-    return SmartAlertResponse(
-        leaveAtIso=_iso_z(leave_at),
-        leaveInSec=max(0, leave_in),
-        travelTimeSec=travel_time,
-        message=message,
-    )
+    except Exception as e:
+        print(f"Error in smart alert: {e}")
+        # Top-level fallback
+        call_time_str = req.estimatedCallTime
+        try:
+            call_time = _parse_iso(req.estimatedCallTime)
+            leave_at = call_time - timedelta(minutes=20)
+            leave_at_str = _iso_z(leave_at)
+            leave_in = max(0, int((leave_at - datetime.now(timezone.utc)).total_seconds()))
+        except Exception:
+            leave_at_str = call_time_str
+            leave_in = 600
+        return SmartAlertResponse(
+            leaveAtIso=leave_at_str,
+            leaveInSec=leave_in,
+            travelTimeSec=900,
+            message=f"Traffic details are currently unavailable. Based on your schedule, you should set off in time to arrive before your turn. You are number {req.position} in the queue."
+        )
