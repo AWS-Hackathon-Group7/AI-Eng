@@ -54,7 +54,7 @@ def get_textract(settings: Settings = Depends(get_settings)) -> TextractService:
     return TextractService(settings)
 
 
-@app.get("/health")
+@app.get("/health", methods=["GET", "HEAD"])
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
